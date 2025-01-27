@@ -1,21 +1,10 @@
 // app/products/[slug]/page.tsx
 import { client } from "@/sanity/lib/client";
 import ProductDetails from "@/app/components/ProductDetails";
+import Header from "@/app/components/Header";
 
-// A type for product data
-interface Product {
-  _id: string;
-  name: string;
-  price: number;
-  discountPercentage: number;
-  description: string;
-  keyFeatures: string[];
-  image: string[];
-  slug: string;
-}
-
-// A function to fetch product data based on the slug
-async function getProduct(slug: string): Promise<Product | null> {
+// Async function to fetch product data
+async function getProduct(slug: string) {
   const query = `*[_type == "product" && slug.current == $slug][0] {
     _id,
     name,
@@ -26,33 +15,39 @@ async function getProduct(slug: string): Promise<Product | null> {
     image,
     "slug": slug.current
   }`;
-
-  try {
-    const product: Product | null = await client.fetch(query, { slug });
-    return product;
-  } catch (error) {
-    console.error("Error fetching product:", error);
-    return null;
-  }
+  return client.fetch(query, { slug });
 }
 
-// Page component for product details
-export default async function ProductPage({
-  params,
-}: {
-  params: { slug: string }; // Correctly typed params
-}): Promise<JSX.Element> {
-  const product = await getProduct(params.slug);
+// Type definitions for Params and SearchParams
+type Params = Promise<{ slug: string }>;
+type SearchParams = Promise<{ [key: string]: string | string[] | undefined }>;
 
-  // If no product is found
-  if (!product) {
-    return <div>Product not found</div>;
+// The page component
+export default async function ProductPage(props: {
+  params: Params;
+  searchParams: SearchParams;
+}): Promise<React.JSX.Element | null> {
+  try {
+    // Extract the slug from the params
+    const { slug } = await props.params;
+
+    // Fetch the product based on the slug
+    const product = await getProduct(slug);
+
+    // If product not found, show a message
+    if (!product) {
+      return <main>Product not found</main>;
+    }
+
+    // Render the product details if found
+    return (
+      <main>
+<Header/>
+        <ProductDetails product={product} />
+      </main>
+    );
+  } catch (error) {
+    console.error(error);
+    return null;
   }
-
-  // Render product details if found
-  return (
-    <main>
-      <ProductDetails product={product} />
-    </main>
-  );
 }
