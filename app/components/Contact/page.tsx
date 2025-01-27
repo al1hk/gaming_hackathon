@@ -1,7 +1,10 @@
 import React from "react";
+import Header from "../Header";
 
 const ContactUs = () => {
   return (
+    <div>
+      <Header/>
     <div className="bg-black text-white py-10">
       {/* Breadcrumb */}
       <div className="text-center text-green-400">
@@ -83,6 +86,8 @@ const ContactUs = () => {
         </div>
       </div>
     </div>
+    </div>
+
   );
 };
 
