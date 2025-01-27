@@ -1,8 +1,8 @@
+// ./structure/index.ts
+
 import type {StructureResolver} from 'sanity/structure'
 
-// https://www.sanity.io/docs/structure-builder-cheat-sheet
-const structure: StructureResolver = (S) =>
-  S.list()
-    .title('Content')
-    .items(S.documentTypeListItems())
-export default structure;
+export const structure: StructureResolver = (S) =>
+  S.list().title('Base').items(
+    S.documentTypeListItems() // <= example code goes here
+  )
