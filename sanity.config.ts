@@ -1,4 +1,4 @@
-import {structure} from 'sanity/structure'
+import structure from 'sanity/structure'
 
 // other imports
 import {visionTool} from '@sanity/vision'
