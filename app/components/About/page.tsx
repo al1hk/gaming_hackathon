@@ -1,7 +1,11 @@
 import React from "react";
+import Header from "../Header";
 
 const AboutUs = () => {
   return (
+    <div>
+      <Header/>
+    
     <div className="bg-black text-green-500 py-10">
       {/* Breadcrumb */}
       <div className="text-center">
@@ -89,6 +93,7 @@ const AboutUs = () => {
           </p>
         </div>
       </div>
+    </div>
     </div>
   );
 };
