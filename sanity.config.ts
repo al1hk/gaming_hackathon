@@ -1,12 +1,11 @@
-import structure from './sanity/structure'
-
-// other imports
-import {visionTool} from '@sanity/vision'
 import {defineConfig} from 'sanity'
+import {visionTool} from '@sanity/vision'
+import {deskTool} from 'sanity/desk' // Still needed for enabling the Desk interface
+import {schema} from './sanity/schemaTypes'
 
 // Go to https://www.sanity.io/docs/api-versioning to learn how API versioning works
 import {apiVersion, dataset, projectId} from './sanity/env'
-import {schema} from './sanity/schemaTypes'
+import {defaultStructure} from './sanity/structure' // Assuming you have a custom structure file
 
 export default defineConfig({
   basePath: '/studio',
@@ -15,9 +14,9 @@ export default defineConfig({
   // Add and edit the content schema in the './sanity/schemaTypes' folder
   schema,
   plugins: [
-    structureTool({ structure }),
-    // Vision is for querying with GROQ from inside the Studio
-    // https://www.sanity.io/docs/the-vision-plugin
+    deskTool({
+      structure: defaultStructure, // Use your custom structure
+    }),
     visionTool({defaultApiVersion: apiVersion}),
   ],
 })
