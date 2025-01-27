@@ -1,4 +1,4 @@
-import {structure} from './sanity/structure'
+import structure from './sanity/structure'
 
 // other imports
 import {visionTool} from '@sanity/vision'
@@ -15,7 +15,7 @@ export default defineConfig({
   // Add and edit the content schema in the './sanity/schemaTypes' folder
   schema,
   plugins: [
-    structure,
+    structureTool({ structure }),
     // Vision is for querying with GROQ from inside the Studio
     // https://www.sanity.io/docs/the-vision-plugin
     visionTool({defaultApiVersion: apiVersion}),
