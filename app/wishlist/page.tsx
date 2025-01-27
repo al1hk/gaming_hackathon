@@ -9,6 +9,7 @@ import Link from 'next/link';
 import { useCart } from '../context/CartContext';
 import { motion } from 'framer-motion';
 import { ShoppingCart, Trash2 } from 'lucide-react';
+import Header from '../components/Header';
 
 interface Product {
   _id: string;
@@ -73,7 +74,10 @@ export default function WishlistPage() {
   }
 
   return (
+
+    <div><Header/>
     <div className="container mx-auto px-4 py-8 min-h-screen">
+      
       <h1 className="text-4xl font-bold mb-8 text-green-500 font-orbitron">My Wishlist</h1>
       
       {wishlistProducts.length === 0 ? (
@@ -158,6 +162,7 @@ export default function WishlistPage() {
           ))}
         </div>
       )}
+    </div>
     </div>
   );
 }
