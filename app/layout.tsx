@@ -51,7 +51,7 @@ export default async function RootLayout({
         <SearchProvider>
           <CartProvider>
             <WishlistProvider>
-              <Header products={products} />
+              
               {children}
             </WishlistProvider>
           </CartProvider>
