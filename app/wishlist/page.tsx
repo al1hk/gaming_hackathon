@@ -6,7 +6,6 @@ import { useToast } from '../context/ToastContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { client } from '@/sanity/lib/client';
 
 interface Product {
   _id: string;
@@ -38,17 +37,13 @@ export default function WishlistPage() {
 
       setIsLoading(true);
       try {
-        const query = `*[_type == "product" && _id in $ids] {
-          _id,
-          name,
-          price,
-          discountPercentage,
-          description,
-          "imageUrl": image.asset->url,
-          "slug": slug.current
-        }`;
+        const res = await fetch('/api/wishlist-products', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ids: wishlist })
+        });
 
-        const fetched = await client.fetch<Product[]>(query, { ids: wishlist });
+        const fetched = (await res.json()) as Product[];
         if (!isCancelled) setProducts(fetched);
       } catch (e) {
         if (!isCancelled) setProducts([]);
