@@ -1,0 +1,10 @@
+[build]
+  command = "npm run build"
+  publish = ".next"
+
+[build.environment]
+  # These are public values required on the client for next-sanity.
+  # Netlify's secrets scanner can flag them inside Next build artifacts.
+  SECRETS_SCAN_OMIT_KEYS = "NEXT_PUBLIC_SANITY_API_VERSION,NEXT_PUBLIC_SANITY_DATASET,NEXT_PUBLIC_SANITY_PROJECT_ID"
+  # Avoid scanning Netlify/Next build artifacts where these values are embedded.
+  SECRETS_SCAN_OMIT_PATHS = ".netlify/**,.next/**"
