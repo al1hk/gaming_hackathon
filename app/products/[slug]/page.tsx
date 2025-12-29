@@ -19,8 +19,8 @@ async function getProduct(slug: string) {
 
 // Type definition for the component props
 // The page component
-export default async function ProductPage({ params }: { params: { slug: string } }) {
-  const { slug } = params;
+export default async function ProductPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
   const product = await getProduct(slug);
 
   // If product not found, show a message
