@@ -15,7 +15,7 @@ async function getProducts() {
       price,
       discountPercentage,
       "imageUrl": image.asset->url,
-      slug
+      "slug": slug.current,
     }
   `;
   

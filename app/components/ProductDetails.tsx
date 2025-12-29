@@ -1,14 +1,13 @@
 "use client";
-import { useState, useEffect } from 'react';
-import Image from 'next/image';
+
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { FaStar, FaStarHalf, FaShoppingCart, FaEdit, FaTrash } from 'react-icons/fa';
-import { BsCheckCircle } from 'react-icons/bs';
 import { useCart } from '../context/CartContext';
 import { useWishlist } from '../context/WishlistContext';
-import { urlFor } from '@/sanity/lib/image';
-import { Heart } from 'lucide-react';
+import { useToast } from '../context/ToastContext';
+import { useRouter } from 'next/navigation';
 
+// Mock types since we are in a demo env
 interface Review {
   id: string;
   name: string;
@@ -23,11 +22,12 @@ interface Product {
   name: string;
   price: number;
   discountPercentage?: number;
-  image: any;
+  imageUrl: string; // Changed from image: any to imageUrl string for this env
   description?: string;
   rating?: number;
   ratingCount?: number;
   keyFeatures?: string[];
+  slug: string;
 }
 
 interface Props {
@@ -35,46 +35,49 @@ interface Props {
 }
 
 const ProductDetails: React.FC<Props> = ({ product }) => {
+  // State from original code
   const [reviews, setReviews] = useState<Review[]>([]);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [comment, setComment] = useState('');
   const [rating, setRating] = useState(5);
-  const [editingReview, setEditingReview] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitSuccess, setSubmitSuccess] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const { addToCart } = useCart();
+  const [activeTab, setActiveTab] = useState<'SPECS' | 'REVIEWS'>('SPECS');
+
+  const router = useRouter();
+  const { addToCart } = useCart(); 
   const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
+  const { showToast } = useToast();
 
   const handleAddToCart = () => {
     addToCart({
       _id: product._id,
       name: product.name,
       price: product.price,
-      imageUrl: urlFor(product.image).url(),
+      imageUrl: product.imageUrl,
       discountPercentage: product.discountPercentage,
       quantity: 1,
     });
+    showToast(`${product.name} ADDED TO INVENTORY`, 'success');
   };
 
   const toggleWishlist = () => {
     if (isInWishlist(product._id)) {
       removeFromWishlist(product._id);
+      showToast('REMOVED FROM DATABASE', 'info');
     } else {
       addToWishlist(product._id);
+      showToast('SAVED TO FAVORITES', 'success');
     }
   };
 
   useEffect(() => {
-    // Load reviews from localStorage
     const storedReviews = localStorage.getItem(`reviews-${product._id}`);
     if (storedReviews) {
       setReviews(JSON.parse(storedReviews));
     }
   }, [product._id]);
 
-  // Save reviews to localStorage whenever they change
   useEffect(() => {
     localStorage.setItem(`reviews-${product._id}`, JSON.stringify(reviews));
   }, [reviews, product._id]);
@@ -82,25 +85,8 @@ const ProductDetails: React.FC<Props> = ({ product }) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    setError(null);
     
-    try {
-      if (editingReview) {
-        // Edit existing review
-        const updatedReviews = reviews.map(review => 
-          review.id === editingReview 
-            ? {
-                ...review,
-                name,
-                email,
-                comment,
-                rating
-              }
-            : review
-        );
-        setReviews(updatedReviews);
-      } else {
-        // Add new review
+    setTimeout(() => {
         const newReview: Review = {
           id: Date.now().toString(),
           name,
@@ -110,273 +96,285 @@ const ProductDetails: React.FC<Props> = ({ product }) => {
           createdAt: new Date().toISOString()
         };
         setReviews(prev => [newReview, ...prev]);
-      }
-
-      setName('');
-      setEmail('');
-      setComment('');
-      setRating(5);
-      setEditingReview(null);
-      setSubmitSuccess(true);
-
-      setTimeout(() => {
-        setSubmitSuccess(false);
-      }, 3000);
-    } catch (err: any) {
-      console.error('Error submitting review:', err);
-      setError(err?.message || 'Error submitting review. Please try again.');
-    } finally {
-      setIsSubmitting(false);
-    }
+        setName('');
+        setEmail('');
+        setComment('');
+        setRating(5);
+        setIsSubmitting(false);
+        showToast('DATA LOG ENTRY SUBMITTED', 'success');
+    }, 1500);
   };
 
-  const handleEdit = (review: Review) => {
-    setName(review.name);
-    setEmail(review.email);
-    setComment(review.comment);
-    setRating(review.rating);
-    setEditingReview(review.id);
-  };
-
-  const handleDelete = (reviewId: string) => {
-    setReviews(prev => prev.filter(review => review.id !== reviewId));
-  };
-
-  const renderStars = (rating: number) => {
-    const stars = [];
-    const fullStars = Math.floor(rating);
-    const hasHalfStar = rating % 1 !== 0;
-
-    for (let i = 0; i < fullStars; i++) {
-      stars.push(<FaStar key={`star-${i}`} className="text-yellow-500" />);
-    }
-
-    if (hasHalfStar) {
-      stars.push(<FaStarHalf key="half-star" className="text-yellow-500" />);
-    }
-
-    const remainingStars = 5 - Math.ceil(rating);
-    for (let i = 0; i < remainingStars; i++) {
-      stars.push(<FaStar key={`empty-star-${i}`} className="text-gray-400" />);
-    }
-
-    return stars;
-  };
+  // Default description if missing
+  const description = product.description || "High-performance gaming hardware designed for the elite netrunner. Features military-grade components and a bio-neural interface for zero-latency response times.";
+  const features = product.keyFeatures || [
+    "Neural Interface Compatible",
+    "Titanium Alloy Chassis",
+    "Quantum Processor Core",
+    "RGB Holo-Sync Technology"
+  ];
 
   return (
-    <div className="container mx-auto px-4 py-8 min-h-screen">
-      <div className="bg-gradient-to-b from-black to-gray-900 rounded-lg shadow-2xl overflow-hidden border border-green-500/20">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 p-8">
-          {/* Product Image */}
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="relative h-[500px] w-full rounded-lg overflow-hidden group"
-          >
-            <Image
-              src={urlFor(product.image).url()}
-              alt={product.name}
-              fill
-              className="object-cover transform group-hover:scale-105 transition-transform duration-500"
-            />
-            {product.discountPercentage && (
-              <div className="absolute top-4 left-4 bg-green-500 text-white px-3 py-1 rounded-full font-semibold">
-                {product.discountPercentage}% OFF
-              </div>
-            )}
-          </motion.div>
-
-          {/* Product Info */}
-          <motion.div 
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-            className="space-y-6"
-          >
-            <div className="flex justify-between items-start">
-              <h1 className="text-4xl font-bold text-green-500 font-orbitron tracking-wider">{product.name}</h1>
-              <motion.button
-                onClick={toggleWishlist}
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
-                className={`p-3 rounded-full ${
-                  isInWishlist(product._id)
-                    ? 'bg-green-500 text-white'
-                    : 'bg-black border-2 border-green-500 text-green-500'
-                } transition-all duration-300 hover:shadow-lg hover:shadow-green-500/20`}
-              >
-                <Heart
-                  className={`w-6 h-6 ${
-                    isInWishlist(product._id)
-                      ? 'fill-white'
-                      : 'hover:fill-green-500'
-                  }`}
-                />
-              </motion.button>
-            </div>
-
-            <div className="space-y-4">
-              <div className="flex items-center gap-4">
-                <span className="text-3xl font-bold text-green-500">
-                  ${product.price.toFixed(2)}
-                </span>
-                {product.discountPercentage && (
-                  <span className="text-xl text-gray-400 line-through">
-                    ${(product.price * (1 + product.discountPercentage / 100)).toFixed(2)}
-                  </span>
-                )}
-              </div>
-
-              <div className="flex items-center gap-2">
-                <div className="flex">
-                  {renderStars(product.rating || 0)}
-                </div>
-                <span className="text-gray-400">
-                  ({product.ratingCount || 0} reviews)
-                </span>
-              </div>
-
-              <p className="text-gray-300 leading-relaxed">
-                {product.description}
-              </p>
-
-              {product.keyFeatures && (
-                <div className="space-y-2">
-                  <h3 className="text-lg font-semibold text-green-500">Key Features:</h3>
-                  <ul className="list-disc list-inside space-y-1 text-gray-300">
-                    {product.keyFeatures.map((feature, index) => (
-                      <li key={index}>{feature}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              <motion.button
-                onClick={handleAddToCart}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                className="w-full py-3 px-6 bg-green-500 text-white rounded-lg font-semibold 
-                          flex items-center justify-center gap-2 hover:bg-green-600 
-                          transition-colors duration-300 shadow-lg hover:shadow-green-500/20"
-              >
-                <FaShoppingCart className="w-5 h-5" />
-                Add to Cart
-              </motion.button>
-            </div>
-          </motion.div>
-        </div>
-
-        {/* Reviews Section */}
-        <div className="border-t border-green-500/20 mt-8 p-8">
-          <h2 className="text-2xl font-bold text-green-500 mb-6">Customer Reviews</h2>
-          
-          {/* Review Form */}
-          <form onSubmit={handleSubmit} className="space-y-4 mb-8">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Your Name"
-                required
-                className="w-full px-4 py-2 rounded-lg bg-gray-900 text-white border border-green-500 focus:outline-none focus:ring-2 focus:ring-green-500"
-              />
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="Your Email"
-                required
-                className="w-full px-4 py-2 rounded-lg bg-gray-900 text-white border border-green-500 focus:outline-none focus:ring-2 focus:ring-green-500"
-              />
-            </div>
-            
-            <div className="flex items-center gap-4">
-              <label className="text-green-500">Rating:</label>
-              <div className="flex items-center">
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <button
-                    key={star}
-                    type="button"
-                    onClick={() => setRating(star)}
-                    className={`text-xl ${
-                      star <= rating ? 'text-yellow-500' : 'text-gray-400'
-                    }`}
-                  >
-                    ★
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <textarea
-              value={comment}
-              onChange={(e) => setComment(e.target.value)}
-              placeholder="Your Review"
-              required
-              rows={4}
-              className="w-full px-4 py-2 rounded-lg bg-gray-900 text-white border border-green-500 focus:outline-none focus:ring-2 focus:ring-green-500"
-            />
-
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="bg-green-500 text-white py-2 px-6 rounded-lg hover:bg-green-600 transition-colors disabled:opacity-50"
-            >
-              {editingReview ? 'Update Review' : 'Submit Review'}
-            </button>
-
-            {submitSuccess && (
-              <div className="flex items-center gap-2 text-green-500">
-                <BsCheckCircle />
-                <span>Review {editingReview ? 'updated' : 'submitted'} successfully!</span>
-              </div>
-            )}
-
-            {error && <div className="text-red-500">{error}</div>}
-          </form>
-
-          {/* Reviews List */}
-          <div className="space-y-6">
-            {reviews.map((review) => (
-              <div
-                key={review.id}
-                className="bg-gray-900 rounded-lg p-4 border border-green-500"
-              >
-                <div className="flex justify-between items-start mb-2">
-                  <div>
-                    <h3 className="font-semibold text-green-500">{review.name}</h3>
-                    <div className="flex items-center text-yellow-500">
-                      {Array.from({ length: review.rating }).map((_, i) => (
-                        <FaStar key={i} className="w-4 h-4" />
-                      ))}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => handleEdit(review)}
-                      className="text-blue-500 hover:text-blue-600"
-                    >
-                      <FaEdit />
-                    </button>
-                    <button
-                      onClick={() => handleDelete(review.id)}
-                      className="text-red-500 hover:text-red-600"
-                    >
-                      <FaTrash />
-                    </button>
-                  </div>
-                </div>
-                <p className="text-gray-300">{review.comment}</p>
-                <span className="text-sm text-gray-400 mt-2 block">
-                  {new Date(review.createdAt).toLocaleDateString()}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
+    <div className="min-h-screen bg-[#020202] text-white pt-24 pb-20 font-['Orbitron'] relative overflow-hidden">
+      
+      {/* Background Matrix Effect */}
+      <div className="fixed inset-0 pointer-events-none">
+         <div className="absolute inset-0 bg-[linear-gradient(rgba(34,197,94,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(34,197,94,0.02)_1px,transparent_1px)] bg-[size:30px_30px]"></div>
+         <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-green-500/5 blur-[100px] rounded-full"></div>
       </div>
+
+      <div className="container mx-auto px-6 relative z-10">
+        
+        {/* Breadcrumb / Back */}
+        <button 
+            onClick={() => router.push('/products')}
+            className="group flex items-center gap-2 text-green-500/60 hover:text-green-400 mb-8 font-['Share_Tech_Mono'] uppercase tracking-widest text-xs"
+        >
+            <span className="group-hover:-translate-x-1 transition-transform">{'<<'}</span>
+            RETURN_TO_DATABASE
+        </button>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20">
+            
+            {/* --- LEFT: VISUALS --- */}
+            <div className="relative">
+                <motion.div 
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="relative aspect-square bg-black border-2 border-green-500/30 group"
+                >
+                    {/* Holo Corners */}
+                    <div className="absolute -top-2 -left-2 w-8 h-8 border-t-4 border-l-4 border-green-500 z-20"></div>
+                    <div className="absolute -bottom-2 -right-2 w-8 h-8 border-b-4 border-r-4 border-green-500 z-20"></div>
+                    <div className="absolute -top-2 -right-2 w-8 h-8 border-t-4 border-r-4 border-green-500/30 z-20"></div>
+                    <div className="absolute -bottom-2 -left-2 w-8 h-8 border-b-4 border-l-4 border-green-500/30 z-20"></div>
+
+                    {/* Scanning Line */}
+                    <div className="absolute inset-0 z-10 bg-gradient-to-b from-transparent via-green-500/10 to-transparent h-[10%] w-full animate-[scanVertical_4s_linear_infinite] pointer-events-none"></div>
+                    
+                    {/* Image */}
+                    <img 
+                        src={product.imageUrl} 
+                        alt={product.name} 
+                        className="w-full h-full object-cover filter contrast-125 sepia-[20%] group-hover:sepia-0 transition-all duration-500"
+                    />
+                    
+                    {/* Overlay Grid */}
+                    <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay pointer-events-none"></div>
+
+                    {/* Floating Stats */}
+                    <div className="absolute top-4 right-4 flex flex-col items-end gap-1 pointer-events-none">
+                        <span className="bg-black/80 text-green-500 px-2 py-0.5 text-[10px] font-mono border border-green-500/30">RES: 8K_READY</span>
+                        <span className="bg-black/80 text-green-500 px-2 py-0.5 text-[10px] font-mono border border-green-500/30">LATENCY: 0.1MS</span>
+                    </div>
+
+                    {product.discountPercentage && product.discountPercentage > 0 && (
+                        <div className="absolute bottom-8 left-0 bg-red-600 text-black font-black px-6 py-2 skew-x-[-20deg] shadow-[0_0_15px_#dc2626]">
+                            <span className="skew-x-[20deg] inline-block">CRITICAL DROP -{product.discountPercentage}%</span>
+                        </div>
+                    )}
+                </motion.div>
+                
+                {/* Thumbnails / Alt Views (Decorative) */}
+                <div className="flex gap-4 mt-6">
+                    {[1, 2, 3].map((i) => (
+                        <div key={i} className="w-20 h-20 border border-green-500/20 bg-green-900/5 hover:border-green-500 hover:bg-green-500/10 transition-all cursor-pointer flex items-center justify-center">
+                            <span className="text-[10px] text-green-500/50 font-mono">VIEW_0{i}</span>
+                        </div>
+                    ))}
+                </div>
+            </div>
+
+            {/* --- RIGHT: DATA --- */}
+            <div>
+                <motion.div
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                >
+                    <div className="flex items-center gap-2 mb-4">
+                        <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                        <span className="text-green-500 font-['Share_Tech_Mono'] tracking-[0.2em] text-xs">STATUS: IN_STOCK</span>
+                    </div>
+
+                    <h1 className="text-4xl md:text-6xl font-black text-white uppercase tracking-tighter mb-4 leading-none glitch-text-effect" data-text={product.name}>
+                        {product.name}
+                    </h1>
+
+                    {/* Rating Bar */}
+                    <div className="flex items-center gap-4 mb-8 border-b border-green-500/20 pb-8">
+                        <div className="flex text-green-400">
+                             {[1,2,3,4,5].map(star => (
+                                 <span key={star} className="text-lg">{star <= (product.rating || 5) ? '★' : '☆'}</span>
+                             ))}
+                        </div>
+                        <span className="text-green-500/60 font-mono text-sm">
+                            [{reviews.length} VERIFIED_LOGS]
+                        </span>
+                    </div>
+
+                    {/* Price Block */}
+                    <div className="mb-10">
+                        <div className="flex items-end gap-4">
+                            <span className="text-5xl font-bold text-white tracking-tight">
+                                ${product.price}
+                            </span>
+                            {product.discountPercentage && product.discountPercentage > 0 && (
+                                <span className="text-xl text-red-500/60 line-through font-mono mb-2">
+                                    ${(product.price * (1 + product.discountPercentage / 100)).toFixed(0)}
+                                </span>
+                            )}
+                        </div>
+                        <p className="text-green-500/40 text-xs font-mono mt-2">
+                            // TAX_INCLUDED // SHIPPING_CALCULATED_AT_CHECKPOINT
+                        </p>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex gap-4 mb-12">
+                        <button 
+                            onClick={handleAddToCart}
+                            className="flex-1 bg-green-600 text-black font-bold uppercase py-4 hover:bg-green-500 hover:shadow-[0_0_20px_#22c55e] transition-all clip-path-polygon-[10px_0,100%_0,100%_calc(100%-10px),calc(100%-10px)_100%,0_100%,0_10px] flex items-center justify-center gap-2 group"
+                        >
+                            <span>Initiate_Acquisition</span>
+                            <span className="bg-black text-green-500 px-1 text-xs group-hover:bg-green-900">+</span>
+                        </button>
+                        
+                        <button 
+                            onClick={toggleWishlist}
+                            className={`w-16 flex items-center justify-center border border-green-500/50 hover:border-green-400 transition-all ${isInWishlist(product._id) ? 'bg-green-900/20 shadow-[inset_0_0_10px_rgba(34,197,94,0.2)]' : ''}`}
+                        >
+                             <svg 
+                                xmlns="http://www.w3.org/2000/svg" 
+                                className={`w-6 h-6 ${isInWishlist(product._id) ? 'text-green-500 fill-green-500' : 'text-green-500/50'}`} 
+                                viewBox="0 0 24 24" 
+                                stroke="currentColor" 
+                                fill="none"
+                                strokeWidth="2"
+                            >
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                            </svg>
+                        </button>
+                    </div>
+
+                    {/* Tabs System */}
+                    <div className="border border-green-500/20 bg-black/50 backdrop-blur">
+                        <div className="flex border-b border-green-500/20">
+                            <button 
+                                onClick={() => setActiveTab('SPECS')}
+                                className={`flex-1 py-3 text-sm font-bold uppercase tracking-wider transition-colors ${activeTab === 'SPECS' ? 'bg-green-500/10 text-green-400 border-b-2 border-green-500' : 'text-gray-500 hover:text-white'}`}
+                            >
+                                Technical_Specs
+                            </button>
+                            <button 
+                                onClick={() => setActiveTab('REVIEWS')}
+                                className={`flex-1 py-3 text-sm font-bold uppercase tracking-wider transition-colors ${activeTab === 'REVIEWS' ? 'bg-green-500/10 text-green-400 border-b-2 border-green-500' : 'text-gray-500 hover:text-white'}`}
+                            >
+                                Data_Logs ({reviews.length})
+                            </button>
+                        </div>
+
+                        <div className="p-6 min-h-[300px]">
+                            {activeTab === 'SPECS' && (
+                                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+                                    <p className="text-gray-400 font-['Share_Tech_Mono'] leading-relaxed mb-6">
+                                        {description}
+                                    </p>
+                                    <h4 className="text-green-500 font-bold mb-4 uppercase text-sm">Core_Modules:</h4>
+                                    <ul className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                        {features.map((feature, idx) => (
+                                            <li key={idx} className="flex items-center gap-2 text-sm text-gray-300 font-mono">
+                                                <span className="w-1.5 h-1.5 bg-green-500"></span>
+                                                {feature}
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </motion.div>
+                            )}
+
+                            {activeTab === 'REVIEWS' && (
+                                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+                                    
+                                    {/* Add Review Form */}
+                                    <form onSubmit={handleSubmit} className="mb-8 border-b border-green-500/20 pb-8">
+                                        <div className="grid grid-cols-2 gap-4 mb-4">
+                                            <input 
+                                                value={name} onChange={e => setName(e.target.value)} required placeholder="IDENTIFIER_NAME"
+                                                className="bg-black border border-green-500/30 p-2 text-green-500 font-mono text-sm focus:outline-none focus:border-green-500"
+                                            />
+                                            <input 
+                                                value={email} onChange={e => setEmail(e.target.value)} required placeholder="COMMS_EMAIL"
+                                                className="bg-black border border-green-500/30 p-2 text-green-500 font-mono text-sm focus:outline-none focus:border-green-500"
+                                            />
+                                        </div>
+                                        <div className="flex items-center gap-2 mb-4">
+                                            <span className="text-xs text-gray-500">RATING_VALUE:</span>
+                                            {[1,2,3,4,5].map(s => (
+                                                <button key={s} type="button" onClick={() => setRating(s)} className={`text-lg ${s <= rating ? 'text-green-500' : 'text-gray-700'}`}>★</button>
+                                            ))}
+                                        </div>
+                                        <textarea 
+                                            value={comment} onChange={e => setComment(e.target.value)} required placeholder="INPUT_LOG_ENTRY..."
+                                            className="w-full bg-black border border-green-500/30 p-2 text-green-500 font-mono text-sm focus:outline-none focus:border-green-500 h-24 resize-none mb-4"
+                                        />
+                                        <button disabled={isSubmitting} className="bg-green-900/30 border border-green-500/50 text-green-400 px-6 py-2 text-xs font-bold uppercase hover:bg-green-500 hover:text-black transition-colors w-full">
+                                            {isSubmitting ? 'TRANSMITTING...' : 'UPLOAD_ENTRY'}
+                                        </button>
+                                    </form>
+
+                                    {/* Logs List */}
+                                    <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+                                        {reviews.length === 0 && <div className="text-gray-600 font-mono text-sm text-center py-4">NO_LOGS_FOUND</div>}
+                                        {reviews.map(review => (
+                                            <div key={review.id} className="bg-green-900/5 p-4 border-l-2 border-green-500/30">
+                                                <div className="flex justify-between items-start mb-2">
+                                                    <span className="text-green-400 font-bold text-sm uppercase">{review.name}</span>
+                                                    <span className="text-xs text-gray-600 font-mono">{new Date(review.createdAt).toLocaleDateString()}</span>
+                                                </div>
+                                                <div className="text-yellow-500/50 text-xs mb-2">{'★'.repeat(review.rating)}</div>
+                                                <p className="text-gray-400 text-sm font-mono leading-relaxed">"{review.comment}"</p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </motion.div>
+                            )}
+                        </div>
+                    </div>
+
+                </motion.div>
+            </div>
+        </div>
+
+      </div>
+      
+      <style>{`
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #000; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #15803d; }
+        .glitch-text-effect { position: relative; }
+        .glitch-text-effect::before, .glitch-text-effect::after {
+             content: attr(data-text); position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0.8;
+        }
+        .glitch-text-effect::before {
+            color: #0ff; z-index: -1; animation: glitch-anim-1 2s infinite linear alternate-reverse;
+        }
+        .glitch-text-effect::after {
+            color: #f00; z-index: -2; animation: glitch-anim-2 2s infinite linear alternate-reverse;
+        }
+        @keyframes glitch-anim-1 {
+            0% { clip-path: inset(20% 0 80% 0); transform: translate(-2px, 1px); }
+            100% { clip-path: inset(60% 0 10% 0); transform: translate(2px, -1px); }
+        }
+        @keyframes glitch-anim-2 {
+            0% { clip-path: inset(10% 0 50% 0); transform: translate(2px, -1px); }
+            100% { clip-path: inset(80% 0 5% 0); transform: translate(-2px, 1px); }
+        }
+        @keyframes scanVertical {
+            0% { top: 0; opacity: 0; }
+            20% { opacity: 1; }
+            80% { opacity: 1; }
+            100% { top: 100%; opacity: 0; }
+        }
+      `}</style>
     </div>
   );
 };

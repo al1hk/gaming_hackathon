@@ -9,12 +9,15 @@ const config: Config = {
   theme: {
     extend: {
       fontFamily: {
-        orbitron: ["Orbitron", "sans-serif"],
-        poppins: ["Poppins", "sans-serif"],
+        orbitron: ["var(--font-orbitron)", "sans-serif"],
+        poppins: ["var(--font-poppins)", "sans-serif"],
+        rajdhani: ["var(--font-rajdhani)", "sans-serif"],
+        share_tech_mono: ["var(--font-share-tech-mono)", "monospace"],
       },
       colors: {
         background: "var(--background)",
         foreground: "var(--foreground)",
+        'cyber-green': '#00ff41',
       },
     },
   },

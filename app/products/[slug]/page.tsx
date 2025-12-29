@@ -1,7 +1,6 @@
 // app/products/[slug]/page.tsx
 import { client } from "@/sanity/lib/client";
 import ProductDetails from "@/app/components/ProductDetails";
-import Header from "@/app/components/Header";
 
 // Async function to fetch product data
 async function getProduct(slug: string) {
@@ -12,42 +11,31 @@ async function getProduct(slug: string) {
     discountPercentage,
     description,
     keyFeatures,
-    image,
+    "imageUrl": image.asset->url,
     "slug": slug.current
   }`;
   return client.fetch(query, { slug });
 }
 
-// Type definitions for Params and SearchParams
-type Params = Promise<{ slug: string }>;
-type SearchParams = Promise<{ [key: string]: string | string[] | undefined }>;
+// Type definition for the component props
+interface ProductPageProps {
+  params: { slug: string };
+}
 
 // The page component
-export default async function ProductPage(props: {
-  params: Params;
-  searchParams: SearchParams;
-}): Promise<React.JSX.Element | null> {
-  try {
-    // Extract the slug from the params
-    const { slug } = await props.params;
+export default async function ProductPage({ params }: ProductPageProps): Promise<React.JSX.Element> {
+  const { slug } = params;
+  const product = await getProduct(slug);
 
-    // Fetch the product based on the slug
-    const product = await getProduct(slug);
-
-    // If product not found, show a message
-    if (!product) {
-      return <main>Product not found</main>;
-    }
-
-    // Render the product details if found
-    return (
-      <main>
-<Header/>
-        <ProductDetails product={product} />
-      </main>
-    );
-  } catch (error) {
-    console.error(error);
-    return null;
+  // If product not found, show a message
+  if (!product) {
+    return <main>Product not found</main>;
   }
+
+  // Render the product details if found
+  return (
+    <main>
+      <ProductDetails product={product} />
+    </main>
+  );
 }

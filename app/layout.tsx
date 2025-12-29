@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
-import { Orbitron, Poppins } from "next/font/google";
+import { Orbitron, Poppins, Rajdhani, Share_Tech_Mono } from "next/font/google";
 import "./globals.css";
 import { SearchProvider } from "./context/SearchContext";
 import { CartProvider } from "./context/CartContext";
 import { WishlistProvider } from "./context/WishlistContext";
+import { ToastProvider } from "./context/ToastContext";
 import Header from "./components/Header";
 import { client } from "@/sanity/lib/client";
 import Footer from "./components/Footer";
@@ -17,6 +18,18 @@ const poppins = Poppins({
   subsets: ["latin"],
   weight: ["100", "200", "300", "400", "500", "600", "700", "800", "900"],
   variable: "--font-poppins",
+});
+
+const rajdhani = Rajdhani({
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700"],
+  variable: "--font-rajdhani",
+});
+
+const shareTechMono = Share_Tech_Mono({
+  subsets: ["latin"],
+  weight: ["400"],
+  variable: "--font-share-tech-mono",
 });
 
 export const metadata: Metadata = {
@@ -46,16 +59,21 @@ export default async function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${orbitron.variable} ${poppins.variable} font-poppins antialiased`}
+        className={`${orbitron.variable} ${poppins.variable} ${rajdhani.variable} ${shareTechMono.variable} font-rajdhani antialiased`}
       >
-        <SearchProvider>
-          <CartProvider>
-            <WishlistProvider>
-              
-              {children}
-            </WishlistProvider>
-          </CartProvider>
-        </SearchProvider>
+        <ToastProvider>
+          <SearchProvider>
+            <CartProvider>
+              <WishlistProvider>
+                
+                <Header products={products} />
+                <main className="pt-24">
+                  {children}
+                </main>
+              </WishlistProvider>
+            </CartProvider>
+          </SearchProvider>
+        </ToastProvider>
         <Footer />
       </body>
     </html>
