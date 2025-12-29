@@ -18,12 +18,8 @@ async function getProduct(slug: string) {
 }
 
 // Type definition for the component props
-interface ProductPageProps {
-  params: { slug: string };
-}
-
 // The page component
-export default async function ProductPage({ params }: ProductPageProps): Promise<React.JSX.Element> {
+export default async function ProductPage({ params }: { params: { slug: string } }) {
   const { slug } = params;
   const product = await getProduct(slug);
 
